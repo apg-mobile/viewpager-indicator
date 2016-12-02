@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/viewpager-indicator.iml" filepath="$PROJECT_DIR$/viewpager-indicator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vpid/vpid.iml" filepath="$PROJECT_DIR$/vpid/vpid.iml" />
     </modules>
   </component>
 </project>
