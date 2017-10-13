@@ -51,7 +51,7 @@
         android:gravity="center"
         android:maxLines="1"
         android:paddingTop="6dp"
-        android:text="Sample ViewPager Indicator"
+        android:text="Simple ViewPager Indicator"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/viewPagerIndicator" />
