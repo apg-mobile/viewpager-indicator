@@ -1,10 +1,14 @@
 package com.apg.viewpagerindicator.library;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
+import android.os.Build;
+import android.support.annotation.Nullable;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.view.View;
@@ -15,16 +19,17 @@ import android.view.ViewGroup;
  */
 public class ViewPagerIndicator extends View {
 
+    private final int DEFAULT_INDICATOR_SIZE = 20;
     private final int DEFAULT_SIZE_OFF_SET = 0;
-    private final int DEFAULT_HEIGHT = 20;
     private final int DEFAULT_STOKE_WIDTH = 4;
     private final int DEFAULT_SPACING = 5;
     private final int DEFAULT_ITEMS = 3;
     private final int DEFAULT_START_POSITION = 0;
     private final int DEFAULT_GRAVITY = Gravity.CENTER.getId();
 
-
+    private boolean indicatorIsAllFill;
     private int indicatorSizeOffSet;
+    private int indicatorSize;
     private int indicatorPosition;
     private int indicatorStokeWidth;
     private int indicatorItems;
@@ -32,11 +37,9 @@ public class ViewPagerIndicator extends View {
     private int indicatorColor;
     private int indicatorSelectedColor;
     private int indicatorGravity;
-    private int mLayoutOffset = 0;
+    private int mLayoutWidthOffset = 0;
     private int mLayoutWidth;
     private int mLayoutHeight;
-    private boolean indicatorIsAllFill;
-
     private Paint pen = new Paint();
 
     public ViewPagerIndicator(Context context) {
@@ -45,6 +48,21 @@ public class ViewPagerIndicator extends View {
 
     public ViewPagerIndicator(Context context, AttributeSet attrs) {
         super(context, attrs);
+        initView(context, attrs, 0, 0);
+    }
+
+    public ViewPagerIndicator(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initView(context, attrs, defStyleAttr, 0);
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public ViewPagerIndicator(Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        initView(context, attrs, defStyleAttr, defStyleRes);
+    }
+
+    private void initView(Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
 
         int[] attrsArray = new int[] {
                 android.R.attr.id,              // 0
@@ -54,31 +72,27 @@ public class ViewPagerIndicator extends View {
                 android.R.attr.gravity          // 4
         };
 
-
-        TypedArray taa = context.obtainStyledAttributes(attrs, attrsArray);
-        TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.ViewPagerIndicator, 0, 0);
+        TypedArray ta1 = context.obtainStyledAttributes(attrs, R.styleable.ViewPagerIndicator, defStyleAttr, defStyleRes);
+        TypedArray ta2 = context.obtainStyledAttributes(attrs, attrsArray);
 
         try {
-            indicatorColor = ta.getColor(R.styleable.ViewPagerIndicator_indicator_color, Color.WHITE);
-            indicatorSelectedColor = ta.getColor(R.styleable.ViewPagerIndicator_indicator_selectedColor, Color.WHITE);
-            indicatorSizeOffSet = (int) ta.getDimension(R.styleable.ViewPagerIndicator_indicator_sizeOffSet, DEFAULT_SIZE_OFF_SET);
-            indicatorStokeWidth = (int) ta.getDimension(R.styleable.ViewPagerIndicator_indicator_stokeWidth, DEFAULT_STOKE_WIDTH);
-            indicatorSpacing = (int) ta.getDimension(R.styleable.ViewPagerIndicator_indicator_spacing, DEFAULT_SPACING);
-            indicatorItems = ta.getInteger(R.styleable.ViewPagerIndicator_indicator_items, DEFAULT_ITEMS);
-            indicatorPosition = ta.getInteger(R.styleable.ViewPagerIndicator_indicator_startPosition, DEFAULT_START_POSITION);
-            indicatorGravity = ta.getInt(R.styleable.ViewPagerIndicator_indicator_gravity, DEFAULT_GRAVITY);
-            indicatorIsAllFill = ta.getBoolean(R.styleable.ViewPagerIndicator_indicator_allFill, false);
+            indicatorColor = ta1.getColor(R.styleable.ViewPagerIndicator_indicator_color, Color.WHITE);
+            indicatorSelectedColor = ta1.getColor(R.styleable.ViewPagerIndicator_indicator_selectedColor, Color.WHITE);
+            indicatorSize = (int) ta1.getDimension(R.styleable.ViewPagerIndicator_indicator_size, DEFAULT_INDICATOR_SIZE);
+            indicatorSizeOffSet = (int) ta1.getDimension(R.styleable.ViewPagerIndicator_indicator_sizeOffSet, DEFAULT_SIZE_OFF_SET);
+            indicatorStokeWidth = (int) ta1.getDimension(R.styleable.ViewPagerIndicator_indicator_stokeWidth, DEFAULT_STOKE_WIDTH);
+            indicatorSpacing = (int) ta1.getDimension(R.styleable.ViewPagerIndicator_indicator_spacing, DEFAULT_SPACING);
+            indicatorItems = ta1.getInteger(R.styleable.ViewPagerIndicator_indicator_items, DEFAULT_ITEMS);
+            indicatorPosition = ta1.getInteger(R.styleable.ViewPagerIndicator_indicator_startPosition, DEFAULT_START_POSITION);
+            indicatorGravity = ta1.getInt(R.styleable.ViewPagerIndicator_indicator_gravity, DEFAULT_GRAVITY);
+            indicatorIsAllFill = ta1.getBoolean(R.styleable.ViewPagerIndicator_indicator_allFill, false);
 
-            mLayoutWidth = taa.getLayoutDimension(2, ViewGroup.LayoutParams.MATCH_PARENT);
-            mLayoutHeight = taa.getLayoutDimension(3, ViewGroup.LayoutParams.MATCH_PARENT);
+            mLayoutWidth = ta2.getLayoutDimension(2, ViewGroup.LayoutParams.MATCH_PARENT);
+            mLayoutHeight = ta2.getLayoutDimension(3, ViewGroup.LayoutParams.MATCH_PARENT);
         } finally {
-            ta.recycle();
-            taa.recycle();
+            ta1.recycle();
+            ta2.recycle();
         }
-    }
-
-    public ViewPagerIndicator(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
     }
 
     public void setViewPager(ViewPager pager) {
@@ -124,28 +138,27 @@ public class ViewPagerIndicator extends View {
         return indicatorPosition;
     }
 
-    private int getTotalIndicatorWidth(int heightSize) {
-        int indicatorWidth;
-        if (mLayoutHeight == ViewGroup.LayoutParams.WRAP_CONTENT) {
-            indicatorWidth = DEFAULT_HEIGHT;
-        } else if (mLayoutHeight == ViewGroup.LayoutParams.MATCH_PARENT){
-            indicatorWidth = heightSize;
-        } else {
-            indicatorWidth = mLayoutHeight;
-        }
-        return (indicatorWidth * indicatorItems) + (indicatorSpacing * (indicatorItems - 1));
+    /**
+     * Find desired width of all indicators
+     *
+     * @return total desired width for this view
+     */
+    private int getDesiredTotalIndicatorWidth() {
+        return (indicatorSize * indicatorItems) + (indicatorSpacing * (indicatorItems - 1));
     }
 
-    private int getOffSetSpace(int heightSize, int widthSize) {
-        int contentSize = getTotalIndicatorWidth(heightSize);
-        return Math.abs(contentSize - widthSize);
-    }
-
-    private int getIndent(int offSetSpace) {
+    /**
+     * Find start indent for drawing indicator view, from left side of the view
+     *
+     * @return start indent for drawing from the left, padding is not well support v.v
+     */
+    private int getStartIndent() {
         if (indicatorGravity == Gravity.CENTER.getId()) {
-            return offSetSpace / 2;
+            return ((getWidth() - getDesiredTotalIndicatorWidth()) / 2) + getPaddingLeft() - getPaddingRight();
+        } else if (indicatorGravity == Gravity.RIGHT.getId()) {
+            return getWidth() - getDesiredTotalIndicatorWidth() - getPaddingRight();
         } else {
-            return 0;
+            return getPaddingLeft();
         }
     }
 
@@ -161,21 +174,7 @@ public class ViewPagerIndicator extends View {
         int heightSize = MeasureSpec.getSize(heightMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
 
-        int desiredWidth = getTotalIndicatorWidth(heightSize);
-        mLayoutOffset = getOffSetSpace(heightSize, widthSize);
-        int desiredHeight = DEFAULT_HEIGHT;
-
-        // Measure Width
-        if (widthMode == MeasureSpec.EXACTLY) {
-            //Must be this size
-            width = widthSize;
-        } else if (widthMode == MeasureSpec.AT_MOST) {
-            //Can't be bigger than...
-            width = Math.min(desiredWidth, widthSize);
-        } else {
-            //Be whatever you want
-            width = desiredWidth;
-        }
+        int desiredHeight = indicatorSize + getPaddingTop() + getPaddingBottom();
 
         //Measure Height
         if (heightMode == MeasureSpec.EXACTLY) {
@@ -189,11 +188,31 @@ public class ViewPagerIndicator extends View {
             height = desiredHeight;
         }
 
+        int desiredWidth = getDesiredTotalIndicatorWidth() + getPaddingLeft() + getPaddingRight();
+
+        // Measure Width
+        if (widthMode == MeasureSpec.EXACTLY) {
+            //Must be this size
+            width = widthSize;
+        } else if (widthMode == MeasureSpec.AT_MOST) {
+            //Can't be bigger than...
+            width = Math.min(desiredWidth, widthSize);
+        } else {
+            //Be whatever you want
+            width = desiredWidth;
+        }
+
+        mLayoutWidthOffset =  Math.max(0, width - desiredWidth);
         setMeasuredDimension(width, height);
+    }
+
+    void getLayoutWidthOffset() {
+
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
 
         pen.setStyle(Paint.Style.STROKE);
         pen.setStrokeWidth(indicatorStokeWidth);
@@ -204,28 +223,27 @@ public class ViewPagerIndicator extends View {
 
     private void drawIndicator(Canvas paper, int indicatorItems, int position) {
 
-        int indent = getIndent(mLayoutOffset);
+        int indent = getStartIndent();
         int cr, cx, cy;
-
 
         for (int i = 0; i < indicatorItems; i++) {
             if (position == i) {
-                cr = (getHeight() / 2) - getPaddingTop() - getPaddingBottom() - (indicatorStokeWidth / 2);
-                cx = cr + getPaddingLeft() + (indicatorStokeWidth / 2) + (indicatorSizeOffSet);
-                cy = (getHeight() / 2) + getPaddingTop() - getPaddingBottom();
+                cr = (indicatorSize / 2) - (indicatorStokeWidth / 2);
+                cx = cr + (indicatorStokeWidth / 2) + (indicatorSizeOffSet);
+                cy = indicatorSize / 2;
 
                 pen.setColor(indicatorSelectedColor);
                 pen.setStyle(Paint.Style.FILL_AND_STROKE);
-                paper.drawCircle(cx + indent, cy, cr, pen);
+                paper.drawCircle(cx + indent, cy + getPaddingTop(), cr, pen);
                 indent += (cr * 2) + (indicatorStokeWidth) + (indicatorSizeOffSet);
             } else {
-                cr = (getHeight() / 2) - getPaddingTop() - getPaddingBottom() - (indicatorStokeWidth / 2) - indicatorSizeOffSet;
-                cx = cr + getPaddingLeft() + (indicatorStokeWidth / 2) + indicatorSizeOffSet;
-                cy = (getHeight() / 2) + getPaddingTop() - (getPaddingBottom());
+                cr = (indicatorSize / 2) - (indicatorStokeWidth / 2) - indicatorSizeOffSet;
+                cx = cr + (indicatorStokeWidth / 2) + indicatorSizeOffSet;
+                cy = indicatorSize / 2;
 
                 pen.setColor(indicatorColor);
                 pen.setStyle(indicatorIsAllFill ? Paint.Style.FILL_AND_STROKE : Paint.Style.STROKE);
-                paper.drawCircle(cx + indent, cy, cr, pen);
+                paper.drawCircle(cx + indent, cy + getPaddingTop(), cr, pen);
                 indent += (cr * 2) + (indicatorStokeWidth) + (indicatorSizeOffSet);
             }
 
@@ -238,7 +256,7 @@ public class ViewPagerIndicator extends View {
     private enum Gravity {
         LEFT(-1),
         CENTER(0),
-        RIGHT(2);
+        RIGHT(1);
 
         private int id;
 
